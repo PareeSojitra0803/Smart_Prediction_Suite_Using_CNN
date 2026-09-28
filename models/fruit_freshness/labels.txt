@@ -1,0 +1,2 @@
+0 Fresh Fruit
+1 Rotten Fruit
