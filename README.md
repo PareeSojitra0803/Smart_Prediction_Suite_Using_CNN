@@ -24,28 +24,70 @@ A simple image classification project that predicts whether a fruit image is **F
 - Google Teachable Machine
 - Jupyter Notebook
 
+
+---
+
+## 🎙️ Home Safety Sound Detector
+
+A browser-based audio classification project that detects five sound categories using a Teachable Machine model.
+
+### 🌐 Live Demo
+
+**[Open Home Safety Sound Detector](https://home-safety-detection.streamlit.app/)**
+
+### 🎧 Audio Classes
+
+- Alarm
+- Background Noise
+- Door Knock
+- Glass Break
+- Siren
+
+### 📂 Audio Demo Files
+
+- **HTML Demo:** `Home_Safety_Sound_Detector.html`
+- **Model Folder:** `models/home_safety_audio/`
+  - `model.json`
+  - `metadata.json`
+  - `weights.bin`
+
+The HTML demo runs in a browser and requires microphone permission. The live Streamlit application is maintained separately.
+
+### 🔗 Related Repositories
+
+- **Main Project:** [Smart_Prediction_Suite_Using_CNN](https://github.com/PareeSojitra0803/Smart_Prediction_Suite_Using_CNN)
+- **Audio Web App:** [Home_Safety_Detection_WebApp](https://github.com/PareeSojitra0803/Home_Safety_Detection_WebApp)
+
+---
+
 ## 📁 Project Structure
 
 ```text
-Smart_Prediction_Suite/
+
+Smart_Prediction_Suite_Using_CNN/
 │
 ├── Data/
 │   ├── fruit_dataset/
-│   │   ├── Fresh/
-│   │   └── Rotten/
 │   └── Testing_Fruit_Images/
 │
 ├── models/
-│   └── fruit_freshness/
-│       ├── keras_model.h5
-│       └── labels.txt
+│   ├── fruit_freshness/
+│   │   ├── keras_model.h5
+│   │   └── labels.txt
+│   │
+│   └── home_safety_audio/
+│       ├── model.json
+│       ├── metadata.json
+│       └── weights.bin
 │
 ├── scripts/
 │   └── download_fruit.py
 │
+├── Home_Safety_Sound_Detector.html
 ├── Fruit_Freshness_Prediction.ipynb
-├── requirements.txt
-└── README.md
+├── README.md
+└── requirements.txt
+
 ```
 
 ## ▶️ How to Run
@@ -79,4 +121,4 @@ The notebook also calculates prediction results and evaluates the model using a 
 
 ## 👩‍💻 Author
 
-**Paree Sojitra**
+***Paree Sojitra***
