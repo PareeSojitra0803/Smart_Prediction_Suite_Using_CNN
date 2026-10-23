@@ -67,8 +67,12 @@ The HTML demo runs in a browser and requires microphone permission. The live Str
 Smart_Prediction_Suite_Using_CNN/
 │
 ├── Data/
-│   ├── fruit_dataset/
 │   └── Testing_Fruit_Images/
+│       ├── freshapple.jpg
+│       ├── freshpear.jpg
+│       ├── freshstrawberry.jpg
+│       ├── rottenapple.jpg
+|       └── rottengrapes.jpg
 │
 ├── models/
 │   ├── fruit_freshness/
