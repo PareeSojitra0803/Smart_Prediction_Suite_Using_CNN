@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Exercise Counter</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#f3f5fa;color:#172033;margin:0;padding:24px}
+main{max-width:850px;margin:auto;background:white;padding:24px;border-radius:16px;box-shadow:0 4px 20px #0001}
+button{border:0;border-radius:8px;padding:11px 17px;margin:4px;background:#2457d6;color:white;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.panels{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px}
+.panel{flex:1;min-width:280px}
+canvas{max-width:100%;height:auto;border-radius:10px;background:#111}
+.stat{font-size:1.1rem;margin:12px 0}.count{font-size:2.2rem;font-weight:bold}
+#status{color:#555;white-space:pre-wrap}.bar{height:8px;background:#e5e7eb;border-radius:8px;overflow:hidden;margin:4px 0 10px}.fill{height:100%;width:0;background:#2457d6}
+small{color:#555}
+</style></head>
+<body><main>
+<h1>Exercise Counter</h1>
+<p>Stand far enough away for your full body to be visible. Use good lighting.</p>
+<button id="start">Start webcam</button><button id="stop" disabled>Stop webcam</button><button id="reset">Reset counter</button>
+<div class="panels">
+ <section class="panel"><h3>Live webcam</h3><div id="webcam-container"></div></section>
+ <section class="panel"><h3>Prediction</h3>
+  <div class="stat">Pose: <b id="label">Not started</b></div>
+  <div class="stat">Confidence: <b id="confidence">—</b></div>
+  <div class="stat">Squats completed: <span class="count" id="count">0</span></div>
+  <div id="predictions"></div>
+ </section>
+</div>
+<p id="status">Click Start webcam. If it fails, allow camera permission and reload once.</p>
+<small>Counter rule: a confident “Squat Down” followed by “Squat Up” counts one rep. Predictions are smoothed to reduce flickering.</small>
+</main>
+<script>
+const MODEL_URL="./web_model/model.json";
+const META_URL="./web_model/metadata.json";
+const $=id=>document.getElementById(id);
+let model=null, webcam=null, running=false, busy=false, count=0;
+let recent=[], wasDown=false, lastCountAt=0;
+const CONFIDENCE=0.75, SMOOTH_WINDOW=5, REP_COOLDOWN_MS=700;
+
+function normalize(s){return s.trim().toLowerCase().replace(/[_-]+/g," ").replace(/\s+/g," ");}
+function setStatus(s){$("status").textContent=s;}
+async function start(){
+ if(running || busy)return;
+ busy=true; $("start").disabled=true; setStatus("Loading model…");
+ try{
+   model=await tmPose.load(MODEL_URL,META_URL);
+   webcam=new tmPose.Webcam(480,360,true);
+   await webcam.setup();
+   await webcam.play();
+   $("webcam-container").replaceChildren(webcam.canvas);
+   running=true; $("stop").disabled=false;
+   setStatus("Webcam running. Keep your full body visible.");
+   loop();
+ }catch(e){
+   console.error(e);
+   setStatus("Could not start: "+(e.message||e)+"\nCheck camera permission, model files, and browser console.");
+   if(webcam){try{webcam.stop();}catch(_){}}
+   running=false; $("stop").disabled=true; $("start").disabled=false;
+ }finally{busy=false;}
+}
+async function loop(){
+ if(!running || !webcam || !model)return;
+ try{
+   webcam.update();
+   const {pose,posenetOutput}=await model.estimatePose(webcam.canvas);
+   const preds=await model.predict(posenetOutput);
+   preds.sort((a,b)=>b.probability-a.probability);
+   const best=preds[0];
+   if(best){
+     recent.push(best.className);
+     if(recent.length>SMOOTH_WINDOW)recent.shift();
+     const votes={};
+     for(const x of recent)votes[x]=(votes[x]||0)+1;
+     const stable=Object.entries(votes).sort((a,b)=>b[1]-a[1])[0][0];
+     $("label").textContent=stable;
+     $("confidence").textContent=(best.probability*100).toFixed(1)+"%";
+     $("predictions").innerHTML=preds.map(p=>`<div>${p.className}: ${(p.probability*100).toFixed(1)}%<div class="bar"><div class="fill" style="width:${(p.probability*100).toFixed(1)}%"></div></div></div>`).join("");
+     if(best.probability>=CONFIDENCE){
+       const name=normalize(stable);
+       if(name==="squat down")wasDown=true;
+       if(name==="squat up" && wasDown && Date.now()-lastCountAt>REP_COOLDOWN_MS){
+         count++; $("count").textContent=count; wasDown=false; lastCountAt=Date.now();
+       }
+     }
+   }
+   // Draw skeleton on a separate overlay so it never overwrites the webcam input frame.
+   drawSkeleton(pose);
+ }catch(e){
+   console.error(e);
+   setStatus("Prediction error: "+(e.message||e)+"\nOpen browser DevTools Console (F12) for details.");
+   running=false; $("start").disabled=false; $("stop").disabled=true;
+   return;
+ }
+ if(running) setTimeout(loop,30);
+}
+let overlay=null;
+function drawSkeleton(pose){
+ const c=webcam.canvas;
+ if(!overlay){overlay=document.createElement("canvas");overlay.width=c.width;overlay.height=c.height;overlay.style.position="absolute";overlay.style.left="-99999px";}
+ // Keep the webcam display clean; classification still runs on the live webcam canvas.
+ // Pose drawing is intentionally omitted to avoid altering input pixels.
+}
+function stop(){
+ running=false;
+ if(webcam){try{webcam.stop();}catch(e){console.warn(e);}}
+ $("start").disabled=false;$("stop").disabled=true;setStatus("Webcam stopped.");
+}
+$("start").addEventListener("click",start);
+$("stop").addEventListener("click",stop);
+$("reset").addEventListener("click",()=>{count=0;wasDown=false;recent=[];$("count").textContent="0";});
+</script></body></html>
